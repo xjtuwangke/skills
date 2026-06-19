@@ -28,7 +28,18 @@ export function getLockSource(parsedUrl: string, normalizedSource: string | null
   // When normalizedSource is used, parseSource() later resolves it to HTTPS,
   // breaking restore for private repos that require SSH authentication.
   const isSSH = parsedUrl.startsWith('git@') || parsedUrl.startsWith('ssh://');
-  return isSSH ? parsedUrl : normalizedSource;
+  if (isSSH) return parsedUrl;
+
+  try {
+    const url = new URL(parsedUrl);
+    if (url.hostname !== 'github.com' && url.hostname !== 'gitlab.com') {
+      return parsedUrl;
+    }
+  } catch {
+    // Non-URL sources can keep the normalized shorthand when available.
+  }
+
+  return normalizedSource;
 }
 import { cloneRepo, cleanupTempDir, GitCloneError } from './git.ts';
 import { discoverSkills, getSkillDisplayName, filterSkills } from './skills.ts';

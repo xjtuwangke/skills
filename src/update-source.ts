@@ -57,6 +57,19 @@ function supportsAppendedSubpath(source: string): boolean {
   return true;
 }
 
+function isNonHostedSourceUrl(sourceUrl: string): boolean {
+  if (sourceUrl.startsWith('git@') || sourceUrl.startsWith('ssh://')) return true;
+  if (sourceUrl.startsWith('http://') || sourceUrl.startsWith('https://')) {
+    try {
+      const host = new URL(sourceUrl).hostname;
+      return host !== 'github.com' && host !== 'gitlab.com';
+    } catch {
+      return false;
+    }
+  }
+  return false;
+}
+
 function appendFolderAndRef(source: string, skillPath: string, ref?: string): string {
   if (!supportsAppendedSubpath(source)) {
     return formatSourceInput(source, ref);
@@ -74,7 +87,8 @@ export function buildUpdateInstallSource(entry: UpdateSourceEntry): string {
   if (!entry.skillPath) {
     return formatSourceInput(entry.sourceUrl, entry.ref);
   }
-  return appendFolderAndRef(entry.source, entry.skillPath, entry.ref);
+  const source = isNonHostedSourceUrl(entry.sourceUrl) ? entry.sourceUrl : entry.source;
+  return appendFolderAndRef(source, entry.skillPath, entry.ref);
 }
 
 /**

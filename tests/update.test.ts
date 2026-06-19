@@ -9,6 +9,7 @@ import * as remove from '../src/remove.ts';
 import * as p from '@clack/prompts';
 import { readFileSync } from 'fs';
 import { join } from 'path';
+import { spawnSync } from 'child_process';
 
 // Mock dependencies
 vi.mock('../src/git.ts');
@@ -266,6 +267,49 @@ describe('Update Cleanup Unit Tests', () => {
       expect(git.cloneRepo).toHaveBeenCalledWith('git@github.com:owner/repo.git', undefined);
       expect(localLock.computeSkillFolderHash).toHaveBeenCalledWith(
         join('/tmp/repo', 'skills/skill-a')
+      );
+      expect(spawnSync).toHaveBeenCalledWith(
+        process.execPath,
+        expect.arrayContaining(['add', 'git@github.com:owner/repo.git', '--skill', 'skill-a']),
+        expect.any(Object)
+      );
+    });
+
+    it('should reinstall legacy GitHub Enterprise locks from sourceUrl, not github.com shorthand', async () => {
+      vi.mocked(skillLock.readSkillLock).mockResolvedValue({
+        version: 3,
+        skills: {
+          'skill-a': {
+            source: 'owner/repo',
+            sourceUrl: 'https://ghe.example.com/owner/repo.git',
+            skillPath: 'skills/skill-a/SKILL.md',
+            sourceType: 'git',
+            ref: 'main',
+            skillFolderHash: 'old-hash',
+            installedAt: '',
+            updatedAt: '',
+          },
+        },
+      });
+
+      vi.mocked(git.cloneRepo).mockResolvedValue('/tmp/repo');
+      vi.mocked(skills.discoverSkills).mockResolvedValue([
+        { name: 'skill-a', path: '/tmp/repo/skills/skill-a', description: 'A', rawContent: '' },
+      ]);
+      vi.mocked(localLock.computeSkillFolderHash).mockResolvedValue('new-hash');
+
+      await updateGlobalSkills({ yes: true });
+
+      expect(git.cloneRepo).toHaveBeenCalledWith('https://ghe.example.com/owner/repo.git', 'main');
+      expect(spawnSync).toHaveBeenCalledWith(
+        process.execPath,
+        expect.arrayContaining([
+          'add',
+          'https://ghe.example.com/owner/repo.git#main',
+          '--skill',
+          'skill-a',
+        ]),
+        expect.any(Object)
       );
     });
   });

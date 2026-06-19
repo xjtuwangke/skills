@@ -309,8 +309,14 @@ describe('getLockSource', () => {
     );
   });
 
-  it('keeps normalized owner/repo for non-SSH remotes', () => {
+  it('keeps normalized owner/repo for github.com HTTPS remotes', () => {
     expect(getLockSource('https://github.com/owner/repo.git', 'owner/repo')).toBe('owner/repo');
+  });
+
+  it('preserves GitHub Enterprise HTTPS URLs for lock files', () => {
+    expect(getLockSource('https://ghe.example.com/owner/repo.git', 'owner/repo')).toBe(
+      'https://ghe.example.com/owner/repo.git'
+    );
   });
 });
 

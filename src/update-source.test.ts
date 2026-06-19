@@ -49,6 +49,16 @@ describe('update-source', () => {
       });
       expect(result).toBe('https://github.com/owner/repo.git#feature/install');
     });
+
+    it('preserves non-GitHub sourceUrl for legacy GitHub Enterprise locks', () => {
+      const result = buildUpdateInstallSource({
+        source: 'owner/repo',
+        sourceUrl: 'https://ghe.example.com/owner/repo.git',
+        ref: 'main',
+        skillPath: 'skills/my-skill/SKILL.md',
+      });
+      expect(result).toBe('https://ghe.example.com/owner/repo.git#main');
+    });
   });
 
   describe('buildLocalUpdateSource', () => {
